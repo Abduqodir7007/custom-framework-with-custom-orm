@@ -1,0 +1,79 @@
+import inspect
+import requests
+import wsgiadapter
+from typing import Any
+from parse import parse
+from webob import Request, Response
+
+
+class PyFramework:
+    def __init__(self) -> None:
+        self.routes = dict()
+
+    def __call__(self, environ, start_response) -> Any:
+        # status = "200 CREATED"
+
+        # response_header = [("Content-type", "text/plain")]
+        # start_response(status, response_header)
+        request = Request(environ)
+        response = self.handle_request(request)
+
+        return response(environ, start_response)
+
+    def handle_request(self, request):
+        response = Response()
+
+        handler, kwargs = self.find_handler(request)
+
+        if inspect.isclass(handler):
+
+            handler_method = getattr(handler(), request.method.lower(), None)
+
+            if handler_method is None:
+                response.status_code = 405
+                response.text = "METHOD NOT ALLOWED"
+                return response
+
+            handler_method(request, response, **kwargs)
+
+        elif inspect.isfunction(handler):
+            handler(request, response, **kwargs)
+        else:
+            self.default_response(response)
+
+        return response
+
+    def find_handler(self, request):
+        for path, handler in self.routes.items():
+            result = parse(path, request.path)
+            if result is not None:
+                return handler, result.named
+
+        return None, None
+
+    def default_response(self, response):
+        response.status_code = 404
+        response.text = "Not found"
+
+    def router(self, path):
+        assert path not in self.routes, f"Path {path} already exists"
+
+        def wrapper(handler):
+            self.routes[path] = handler
+            return handler
+
+        return wrapper
+    
+    def add_router(self, path, handler):
+        assert path not in self.routes , f"Path {path} already exists" 
+        self.routes[path] = handler
+
+    def add_exception_handler(self, exception):
+        return exception(request,)
+
+    def test_session(self):
+        session = requests.Session()
+        session.mount("http://testserver", wsgiadapter.WSGIAdapter(self))
+        return session
+    
+
