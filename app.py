@@ -2,8 +2,10 @@ import inspect
 import requests
 import wsgiadapter
 from parse import parse
-from webob import Request, Response
+from webob import Request
+from response import Response
 from middleware import Middleware
+from typing import List
 
 
 class PyFramework:
@@ -30,17 +32,14 @@ class PyFramework:
     def handle_request(self, request):
         response = Response()
 
-        handler, kwargs = self.find_handler(request)
+        handler, kwargs, allowed_methods = self.find_handler(request)
 
         if inspect.isclass(handler):
 
             handler_method = getattr(handler(), request.method.lower(), None)
 
             if handler_method is None:
-                response.status_code = 405
-                response.text = "METHOD NOT ALLOWED"
-                return response
-
+                return self.method_not_allowed_response(request, response)
             try:
                 handler_method(request, response, **kwargs)
             except Exception as e:
@@ -50,7 +49,11 @@ class PyFramework:
                     raise e
         elif inspect.isfunction(handler):
             try:
+                if request.method.lower() not in allowed_methods:
+                    return self.method_not_allowed_response(request, response)
+
                 handler(request, response, **kwargs)
+
             except Exception as e:
                 if self.exception_handler is not None:
                     self.exception_handler(request, response, e)
@@ -63,12 +66,16 @@ class PyFramework:
         return response
 
     def find_handler(self, request):
+        allowed_method = None
         for path, handler in self.routes.items():
-            result = parse(path, request.path)
-            if result is not None:
-                return handler, result.named
+            handler, allowed_method = handler
 
-        return None, None
+            result = parse(path, request.path)
+
+            if result is not None:
+                return handler, result.named, allowed_method
+
+        return None, None, allowed_method
 
     def add_middleware(self, middleware_class):
         self.middleware.add(middleware_class)
@@ -77,18 +84,23 @@ class PyFramework:
         response.status_code = 404
         response.text = "Not found"
 
-    def router(self, path):
+    def method_not_allowed_response(self, request, response):
+        response.text = "METHOD NOT ALLOWED"
+        response.status_code = 405
+        return response
+
+    def router(self, path: str, allowed_methods: List[str] = ["get"]):
         assert path not in self.routes, f"Path {path} already exists"
 
         def wrapper(handler):
-            self.routes[path] = handler
+            self.routes[path] = (handler, allowed_methods)
             return handler
 
         return wrapper
 
-    def add_router(self, path, handler):
+    def add_router(self, path, handler, allowed_methods: List[str] = ["get"]):
         assert path not in self.routes, f"Path {path} already exists"
-        self.routes[path] = handler
+        self.routes[path] = (handler, allowed_methods)
 
     def test_session(self):
         session = requests.Session()

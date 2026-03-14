@@ -9,6 +9,11 @@ def home(request, response, name):
     response.text = f"Hello {name}"
 
 
+@app.router("/book/")
+def book(request, response):
+    response.text = "Tesing allowed method"
+
+
 @app.router("/books/")
 class Books:
 
@@ -18,6 +23,7 @@ class Books:
     def post(self, request, response):
         response.text = "Created a book\n   "
 
+
 class LoggingMiddleware(Middleware):
 
     def process_request(self, request):
@@ -25,5 +31,6 @@ class LoggingMiddleware(Middleware):
 
     def process_response(self, request, response):
         print("Bye")
-    
+
+
 app.add_middleware(LoggingMiddleware)

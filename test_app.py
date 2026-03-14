@@ -1,4 +1,5 @@
 import pytest
+import json
 from middleware import Middleware
 from conftest import app, test_client
 from app import PyFramework
@@ -127,6 +128,7 @@ class TestApp:
                 is_process_response_called = True
 
         app.add_middleware(SimpleMiddleware)
+
         @app.router("/home/")
         def home(request, response):
             response.text = "Hello from middleware"
@@ -135,3 +137,46 @@ class TestApp:
 
         assert is_process_response_called is True
         assert is_process_request_called is True
+
+    def test_function_based_allowed_method(self, app: PyFramework, test_client):
+
+        @app.router("/book/", allowed_methods=["get"])
+        def book(request, response):
+            response.text = "Hello world"
+
+        res = test_client.get("http://testserver/book/")
+
+        assert res.text == "Hello world"
+
+    def test_function_based_allowed_method_with_wrong_method(self, app, test_client):
+
+        @app.router("/book/", allowed_methods=["post"])
+        def book(request, response):
+            response.text = "Checking method allowed"
+
+        res = test_client.get("http://testserver/book/")
+
+        assert res.text == "METHOD NOT ALLOWED"
+
+    def test_json_response(self, app, test_client):
+
+        @app.router("/json")
+        def json_handler(request, response):
+
+            response_data = {"name": "tom", "number": 10}
+
+            response.body = response_data
+            res = test_client.get("http://testserver/json/").json()
+
+            assert res.headers["Content-Type"] == "application/json"
+            assert res.name == "tom"
+
+    def test_text_response(self, app, test_client):
+
+        @app.router("/text/")
+        def text_handler(request, response):
+            response.text = "this is the response"
+
+        res = test_client.get("http://testserver/text/")
+
+        assert "text/plain" in res.headers["Content-Type"]
