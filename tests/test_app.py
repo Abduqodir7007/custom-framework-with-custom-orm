@@ -1,7 +1,7 @@
 import pytest
 import json
 from pyframe.middleware import Middleware
-from conftest import app, test_client
+from tests.conftest import app, test_client
 from pyframe.app import PyFramework
 
 

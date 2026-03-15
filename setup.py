@@ -12,7 +12,7 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'mypackage'
+NAME = 'pyframex7'
 DESCRIPTION = 'This is simple python web framework which written for learning purposes'
 URL = 'https://github.com/Abduqodir7007/custom-framework'
 EMAIL = 'abdukodirarifzanov@gmail.com'
