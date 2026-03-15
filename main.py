@@ -1,5 +1,5 @@
-from app import PyFramework
-from middleware import Middleware
+from pyframe.app import PyFramework
+from pyframe.middleware import Middleware
 
 app = PyFramework()
 

@@ -3,8 +3,8 @@ import requests
 import wsgiadapter
 from parse import parse
 from webob import Request
-from response import Response
-from middleware import Middleware
+from .response import Response
+from .middleware import Middleware
 from typing import List
 
 

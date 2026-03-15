@@ -1,8 +1,8 @@
 import pytest
 import json
-from middleware import Middleware
+from pyframe.middleware import Middleware
 from conftest import app, test_client
-from app import PyFramework
+from pyframe.app import PyFramework
 
 
 class TestApp:
