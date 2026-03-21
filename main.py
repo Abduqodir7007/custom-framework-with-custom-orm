@@ -11,6 +11,7 @@ def home(request, response, name):
 
 @app.router("/book/")
 def book(request, response):
+    print(request.params.get("age"))
     response.text = "Tesing allowed method"
 
 
@@ -21,16 +22,16 @@ class Books:
         response.text = "Getting boooks\n"
 
     def post(self, request, response):
-        response.text = "Created a book\n   "
+        response.text = "Created a book\n"
 
 
-class LoggingMiddleware(Middleware):
+# class LoggingMiddleware(Middleware):
 
-    def process_request(self, request):
-        print("hi")
+#     def process_request(self, request):
+#         print("hi")
 
-    def process_response(self, request, response):
-        print("Bye")
+#     def process_response(self, request, response):
+#         print("Bye")
 
 
-app.add_middleware(LoggingMiddleware)
+# app.add_middleware(LoggingMiddleware)
