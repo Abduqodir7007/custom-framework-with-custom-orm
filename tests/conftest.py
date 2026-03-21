@@ -1,5 +1,9 @@
 from pytest import fixture
-from pyframe.app import PyFramework
+import sys
+import os
+from main import PyFramework
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 @fixture
