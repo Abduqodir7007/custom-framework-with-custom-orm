@@ -36,8 +36,12 @@ class Column:
 class Table:
     _db = None
 
+    def __init__(self, **kwargs) -> None:
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+
     @classmethod
-    def get_table_name(cls):
+    def get_table_name(cls) -> str:
         return str(cls.__name__).lower()
 
     @classmethod
@@ -60,15 +64,24 @@ class Table:
 
     @classmethod
     def build_full_query(cls) -> str:
+
         parts = cls._build_columns_sql()
         table_name = cls.get_table_name()
-
-        query = f"CREATE TABLE IF NOT EXISTS {table_name} ({parts})"
+        try:
+            query = f"CREATE TABLE IF NOT EXISTS {table_name} ({parts})"
+        except ValueError:
+            raise TypeError("Table must have at least one column")
         return query
 
-    def save(self):
-        table_name = self.__class__.get_table_name()
-        columns = list(self.__class__._get_fields().keys())
+    def save(self) -> None:
+        if self._db is None:
+            raise TypeError("Please bind the database")
+
+        table_name: str = self.__class__.get_table_name()
+        columns: list = list(self.__class__._get_fields().keys())
+
+        # print("table name: ", table_name)
+        # print("column list: ", columns)
 
         column_names = ", ".join(columns)
         placeholders = ", ".join(["?"] * len(columns))
@@ -78,12 +91,38 @@ class Table:
 
         self.__class__._db.execute(query, values)
 
+        return
+
+    @classmethod
+    def all(cls):
+        table_name = cls.get_table_name()
+        query = f"SELECT * FROM {table_name}"
+
+        res = cls._db.execute(query)
+        return res.fetchall()
+
+    @classmethod
+    def get(cls, **kwargs):  # we can use kwargs to filter data with any fields
+        table_name = cls.get_table_name()
+        conditions = [f"{key} = ?" for key in kwargs]
+        values = tuple(kwargs.values())
+
+        query = f"SELECT * FROM {table_name} WHERE {" AND ".join(conditions)} LIMIT 1"
+        res = cls._db.execute(query, values)
+        return res.fetchall()
+
+    def delete(self, **kwargs):
+        pass
+
+    def filter(self, **kwargs):
+        pass
+
 
 class Database:
     _instance = None
     _initialized = False
 
-    def __new__(cls) -> Self:
+    def __new__(cls, *args, **kwargs) -> Self:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -93,27 +132,31 @@ class Database:
             return
 
         self._initialized = True
-        self.connection = sqlite3.connect(name)
+        self.name = name
 
-    def __connection(self):
-        return self.connection.cursor()
+    def connection(self):
+        return sqlite3.connect(self.name)
+
+    def cursor(self):
+        return self.connection().cursor()
 
     def execute(self, query, params=None):
-        cursor = self.__connection()
-
+        conn = self.connection()
+        cursor = conn.cursor()
         if params is not None:
             cursor.execute(query, params)
         else:
             cursor.execute(query)
 
-        self.connection.commit()
+        conn.commit()
+        return cursor
 
-    def create(self, model: Table):
+    def create(self, model):
         model._db = self
         query = model.build_full_query()
         self.execute(query)
 
-    def drop(self, model: Table):
+    def drop(self, model):
         model._db = self
         table_name = model.get_table_name()
         query = f"DROP TABLE IF EXISTS {table_name}"

@@ -4,8 +4,8 @@
 *.pyd
 .coverage
 tests/.coveragerc
-__pycache__/
 .pytest_cache/
 dist/
 pyframex7.egg-info/
 pyframe/request.py
+__pycache__/
