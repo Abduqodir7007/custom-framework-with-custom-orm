@@ -35,7 +35,6 @@ class TestOrm:
         tables = res.fetchall()
 
         assert ("users",) not in tables
-        
 
     def test_data_creation_for_table(self, db):
         class Users(Table):
@@ -79,3 +78,21 @@ class TestOrm:
 
         res = Books.get(author="author")
         assert res[0][0] == "test"
+
+    def test_delete_method(self, db):
+        class Books(Table):
+            name = Column(str)
+            author = Column(str)
+
+        db.create(Books)
+        book = Books(name="book", author="author")
+        book.save()
+
+        book.delete()
+
+        book.save()
+        res = db.execute("SELECT * FROM books")
+
+        data = res.fetchall()
+        print(data)
+        assert book.name not in data

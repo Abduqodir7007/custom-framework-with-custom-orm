@@ -111,10 +111,21 @@ class Table:
         res = cls._db.execute(query, values)
         return res.fetchall()
 
-    def delete(self, **kwargs):
-        pass
+    @classmethod
+    def delete(cls, **kwargs):
+        table_name = cls.get_table_name()
+        condition = [f"{key} = ?" for key in kwargs]
+        values = tuple(kwargs.values())
+        query = (
+            f"DELETE FROM {table_name} WHERE {" AND ".join(condition)}"
+            if kwargs
+            else f"DELETE FROM {table_name}"
+        )
+        res = cls._db.execute(query, values)
+        return
 
     def filter(self, **kwargs):
+
         pass
 
 
