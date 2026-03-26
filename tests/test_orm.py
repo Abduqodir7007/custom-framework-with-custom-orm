@@ -1,8 +1,18 @@
+import pytest
 from tests.conftest import db
 from pyframe.orm import Database, Table, Column
 
 
 class TestOrm:
+
+    def test_clear_db(self, db):
+        res = db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = res.fetchall()
+        for table in tables:
+            for name in table:
+                db.execute(f"DELETE FROM {name}")
+
+        assert 1 == 1
 
     def test_table_create(self, db: Database):
         class Users(Table):
@@ -72,12 +82,25 @@ class TestOrm:
             author = Column(str)
 
         db.create(Books)
-
         book = Books(name="test", author="author")
         book.save()
-
         res = Books.get(author="author")
-        assert res[0][0] == "test"
+
+        assert res[0] == "test"
+
+    def test_get_method_with_multiple_objects(self, db):
+
+        class User(Table):
+            name = Column(str)
+            age = Column(int)
+
+        db.create(User)
+
+        user1 = User(name="test_name_1", age=10)
+        user2 = User(name="test_name_2", age=10)
+
+        with pytest.raises(Exception):
+            res = User.get(age=10)
 
     def test_delete_method(self, db):
         class Books(Table):
@@ -88,11 +111,14 @@ class TestOrm:
         book = Books(name="book", author="author")
         book.save()
 
-        book.delete()
+        book.delete(name="book")
 
         book.save()
         res = db.execute("SELECT * FROM books")
 
         data = res.fetchall()
-        print(data)
+
         assert book.name not in data
+
+    def test_limit_feature(self, db):
+        pass

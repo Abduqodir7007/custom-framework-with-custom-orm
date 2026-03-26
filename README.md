@@ -21,39 +21,120 @@ pyframex7 is available on PyPI and can be installed with:
 pip install pyframex7
 ```
 
-### Function-Based Handler Example
+
+## Simple Use Cases
+
+### 1. Function-Based Handler Example
 ```python
-from app import App
-from response import Response
+from pyframe.app import PyFramework
+from pyframe.response import Response
 
-app = App()
+app = PyFramework()
 
-@app.route("/")
-def home(request):
-    return Response("Hello, World!")
+# Function-based route handler
+@app.router("/hello/{name}")
+def hello(request, response, name):
+    # Set plain text response
+    response.text = f"Hello, {name}!"
 
+# To run: Use a WSGI server like gunicorn or waitress
+# Example: gunicorn main:app
 ```
 
-### Class-Based Handler Example
+### 2. Class-Based Handler Example
 ```python
-from app import App, Handler
-from response import Response
+from pyframe.app import PyFramework
 
-app = App()
+app = PyFramework()
 
-class HelloHandler(Handler):
-    def get(self, request):
-        return Response("Hello from class-based handler!")
+# Class-based handler for /greet/
+@app.router("/greet/")
+class Greet:
+    def get(self, request, response):
+        response.text = "Greetings from a class-based handler!"
 
-app.add_route("/hello", HelloHandler)
+    def post(self, request, response):
+        # You can access POST data from request.params
+        name = request.params.get("name", "Anonymous")
+        response.text = f"Posted by {name}"
 ```
 
-- Define your routes using the `@app.route` decorator for function-based handlers or `app.add_route` for class-based handlers.
-- Return a `Response` object from your route handlers.
+### 3. Using Middleware
+```python
+from pyframe.middleware import Middleware
+
+class LoggingMiddleware(Middleware):
+    def process_request(self, request):
+        print(f"Request path: {request.path}")
+
+    def process_response(self, request, response):
+        print(f"Response status: {response.status_code}")
+
+# Add middleware to the app
+app.add_middleware(LoggingMiddleware)
 ```
 
-- Define your routes using the `@app.route` decorator.
-- Return a `Response` object from your route handlers.
+
+
+### 4. Simple ORM Model and Usage
+```python
+from pyframe.orm import Table, Column, Database
+
+# Define a User model/table
+class User(Table):
+    id = Column(int)
+    name = Column(str)
+    age = Column(int)
+
+# Create a database instance (in-memory for demo)
+db = Database(":memory:")
+
+# Register the model and create the table
+db.create(User)
+
+# Now the User model is bound to the database
+
+# Create and save multiple users
+user1 = User(id=1, name="Alice", age=30)
+user2 = User(id=2, name="Bob", age=25)
+user3 = User(id=3, name="Charlie", age=35)
+user1.save()
+user2.save()
+user3.save()
+
+# Fetch all users
+users = User.all()
+print("All users:", users)
+
+# Get a single user by field (raises if not found or multiple found)
+try:
+    alice = User.get(name="Alice")
+    print("Get Alice:", alice)
+except Exception as e:
+    print(e)
+
+# Filter users by age
+filtered = User.filter(age=25)
+print("Users with age=25:", filtered)
+
+# Delete a user by id
+User.delete(id=2)
+print("After deleting Bob:", User.all())
+
+# Drop the table (removes all data and table)
+db.drop(User)
+```
+
+---
+
+#### Comments
+- The framework supports both function-based and class-based route handlers.
+- Middleware can be added for logging, authentication, etc.
+- The ORM allows you to define models as Python classes and map them to SQL tables.
+- You must bind a database connection to your model before saving data.
+- Table creation and data insertion are handled via class methods and instance methods.
+
+---
 
 
 ## Use Cases

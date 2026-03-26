@@ -102,14 +102,26 @@ class Table:
         return res.fetchall()
 
     @classmethod
-    def get(cls, **kwargs):  # we can use kwargs to filter data with any fields
+    def get(cls, **kwargs):  
+        if not kwargs:
+            raise Exception("Cannot use get without key word arguments")
+
         table_name = cls.get_table_name()
         conditions = [f"{key} = ?" for key in kwargs]
+        where_clause = " AND ".join(conditions)
         values = tuple(kwargs.values())
 
-        query = f"SELECT * FROM {table_name} WHERE {" AND ".join(conditions)} LIMIT 1"
+        query = f"SELECT * FROM {table_name} WHERE {where_clause}"
         res = cls._db.execute(query, values)
-        return res.fetchall()
+        data = res.fetchall()
+
+        if len(data) == 0:
+            raise Exception("Object does not exists")
+
+        if len(data) > 1:
+            raise Exception("Multiple Object exists")
+
+        return data[0]
 
     @classmethod
     def delete(cls, **kwargs):
@@ -124,9 +136,17 @@ class Table:
         res = cls._db.execute(query, values)
         return
 
-    def filter(self, **kwargs):
+    @classmethod
+    def filter(cls, **kwargs):
+        table_name = cls.get_table_name()
+        conditions = [f"{key} = ?" for key in kwargs.keys()]
+        values = tuple(kwargs.values())
 
-        pass
+        query = f"SELECT * FROM {table_name} WHERE {conditions}"
+
+        res = cls._db.execute(query, values)
+
+        return res.fetchall()
 
 
 class Database:
