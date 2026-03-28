@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Self
+from typing import Self, Tuple
 
 
 class DataTypes:
@@ -33,8 +33,152 @@ class Column:
             raise TypeError("Unsupported data type")
 
 
+class Query:
+    def __init__(self, model) -> None:
+        self.model = model
+        self.filters = []
+        self.selected_fields = None
+
+    def all(self):
+        table_name = self.model.__name__
+        query = f"SELECT * FROM {table_name}"
+
+        res = self.model._db.execute(query)
+        return res.fetchall()
+
+    def get(self, **kwargs):
+        if not kwargs:
+            raise Exception("Cannot use get without key word arguments")
+
+        table_name = self.model.__name__
+        conditions = [f"{key} = ?" for key in kwargs]
+        where_clause = " AND ".join(conditions)
+        values = tuple(kwargs.values())
+
+        query = f"SELECT * FROM {table_name} WHERE {where_clause}"
+        res = self.model._db.execute(query, values)
+        data = res.fetchall()
+
+        if len(data) == 0:
+            raise Exception("Object does not exists")
+
+        if len(data) > 1:
+            raise Exception("Multiple Object exists")
+
+        return data[0]
+
+    def delete(self, **kwargs):
+        table_name = self.model.__name__
+
+        condition = [f"{key} = ?" for key in kwargs]
+        values = tuple(kwargs.values())
+        query = (
+            f"DELETE FROM {table_name} WHERE {" AND ".join(condition)}"
+            if kwargs
+            else f"DELETE FROM {table_name}"
+        )
+        res = self.model._db.execute(query, values)
+        return
+
+    def filter(self, **kwargs):
+        if not kwargs:
+            raise Exception("Filter cannot be used without key word arguments")
+
+        new_qs = Query(self.model)
+
+        new_qs.filters = self.filters.copy()
+        new_qs.filters.append(kwargs)
+        return new_qs
+
+    def values(self, *args):
+        if not args:
+            raise Exception("Cannot csql_result values without arguments!")
+
+        new_qs = Query(self.model)
+        new_qs.selected_fields = self.selected_fields.copy()
+        new_qs.filters = self.filters.copy()
+        table_name = self.model.get_table_name()
+        is_missing, missing = self.check_selected_fields(
+            table_name, args, self.model._db
+        )
+
+        if is_missing:
+            raise Exception(
+                f" {', '.join(missing)} this fields does not exits in the table"
+            )
+        new_qs.selected_fields = list(args)
+
+        return new_qs
+
+    def _build_query(self):
+        table_name = self.model.get_table_name()
+
+        if self.selected_fields is None:
+            query = f"SELECT * FROM {table_name}"
+        else:
+            query = f"SELECT {', '.join(self.selected_fields)} FROM {table_name}"
+
+        if self.filters:
+            conditions = " AND ".join(
+                [f"{list(f.keys())[0]} = ?" for f in self.filters]
+            )
+            values = tuple(list(f.values())[0] for f in self.filters)
+            query += f" WHERE {conditions}"
+            return query, values
+        return None, None
+
+    def sql_result(self):
+        query, values = self._build_query()
+
+        if query is None or values is None:
+            raise Exception("Something went wrong")
+
+        res = self.model._db.execute(query, values)
+        return res.fetcs()
+
+    def iter(self):
+        return iter(self.sql_result())
+
+    def repr(self) -> str:
+        return repr(self.sql_result())
+
+    def len(self):
+        return len(self.sql_result())
+
+    @staticmethod
+    def check_selected_fields(table_name: str, columns: Tuple[str], db):
+        query = f"SELECT name FROM PRAGMA_TABLE_INFO('{table_name}');"
+        res = db.execute(query)
+        cols = res.fetchall()
+        print(cols)
+        missing = [c for c in columns if c not in cols]
+        is_missing = all(c in cols for c in cols)
+        return is_missing, missing
+
+
+class Manager:
+    def __init__(self, model) -> None:
+        self.model = model
+
+    def filter(self, **kwargs):
+        return Query(self.model).filter(**kwargs)
+
+    def delete(self, **kwargs):
+        return Query(self.model).delete(**kwargs)
+
+    def get(self, **kwargs):
+        return Query(self.model).get(**kwargs)
+
+    def all(self):
+        return Query(self.model).all()
+
+
 class Table:
     _db = None
+
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+        cls.objects = Manager(cls)
 
     def __init__(self, **kwargs) -> None:
         for name, value in kwargs.items():
@@ -77,8 +221,8 @@ class Table:
         if self._db is None:
             raise TypeError("Please bind the database")
 
-        table_name: str = self.__class__.get_table_name()
-        columns: list = list(self.__class__._get_fields().keys())
+        table_name: str = self.get_table_name()
+        columns: list = list(self._get_fields().keys())
 
         # print("table name: ", table_name)
         # print("column list: ", columns)
@@ -89,64 +233,9 @@ class Table:
 
         query = f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})"
 
-        self.__class__._db.execute(query, values)
+        self._db.execute(query, values)
 
         return
-
-    @classmethod
-    def all(cls):
-        table_name = cls.get_table_name()
-        query = f"SELECT * FROM {table_name}"
-
-        res = cls._db.execute(query)
-        return res.fetchall()
-
-    @classmethod
-    def get(cls, **kwargs):  
-        if not kwargs:
-            raise Exception("Cannot use get without key word arguments")
-
-        table_name = cls.get_table_name()
-        conditions = [f"{key} = ?" for key in kwargs]
-        where_clause = " AND ".join(conditions)
-        values = tuple(kwargs.values())
-
-        query = f"SELECT * FROM {table_name} WHERE {where_clause}"
-        res = cls._db.execute(query, values)
-        data = res.fetchall()
-
-        if len(data) == 0:
-            raise Exception("Object does not exists")
-
-        if len(data) > 1:
-            raise Exception("Multiple Object exists")
-
-        return data[0]
-
-    @classmethod
-    def delete(cls, **kwargs):
-        table_name = cls.get_table_name()
-        condition = [f"{key} = ?" for key in kwargs]
-        values = tuple(kwargs.values())
-        query = (
-            f"DELETE FROM {table_name} WHERE {" AND ".join(condition)}"
-            if kwargs
-            else f"DELETE FROM {table_name}"
-        )
-        res = cls._db.execute(query, values)
-        return
-
-    @classmethod
-    def filter(cls, **kwargs):
-        table_name = cls.get_table_name()
-        conditions = [f"{key} = ?" for key in kwargs.keys()]
-        values = tuple(kwargs.values())
-
-        query = f"SELECT * FROM {table_name} WHERE {conditions}"
-
-        res = cls._db.execute(query, values)
-
-        return res.fetchall()
 
 
 class Database:

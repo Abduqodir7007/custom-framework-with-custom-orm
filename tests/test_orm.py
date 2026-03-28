@@ -72,7 +72,7 @@ class TestOrm:
         user = Users(name="john", password="easypassword")
         user.save()
 
-        res = user.all()
+        res = user.objects.all()
         assert len(res) == 2
 
     def test_get_method(self, db):
@@ -84,7 +84,7 @@ class TestOrm:
         db.create(Books)
         book = Books(name="test", author="author")
         book.save()
-        res = Books.get(author="author")
+        res = Books.objects.get(author="author")
 
         assert res[0] == "test"
 
@@ -100,7 +100,7 @@ class TestOrm:
         user2 = User(name="test_name_2", age=10)
 
         with pytest.raises(Exception):
-            res = User.get(age=10)
+            res = User.objects.get(age=10)
 
     def test_delete_method(self, db):
         class Books(Table):
@@ -111,11 +111,9 @@ class TestOrm:
         book = Books(name="book", author="author")
         book.save()
 
-        book.delete(name="book")
-
-        book.save()
+        Books.objects.delete(name="book")
+        
         res = db.execute("SELECT * FROM books")
-
         data = res.fetchall()
 
         assert book.name not in data
