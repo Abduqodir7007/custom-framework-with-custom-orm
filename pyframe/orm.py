@@ -134,7 +134,7 @@ class Query:
             raise Exception("Something went wrong")
 
         res = self.model._db.execute(query, values)
-        return res.fetcs()
+        return res.fetchall()
 
     def iter(self):
         return iter(self.sql_result())
@@ -171,6 +171,15 @@ class Manager:
 
     def all(self):
         return Query(self.model).all()
+
+    def __iter__(self):
+        return iter(self.all())
+
+    def __repr__(self):
+        return repr(self.all())
+
+    def __len__(self):
+        return len(self.all())
 
 
 class Table:

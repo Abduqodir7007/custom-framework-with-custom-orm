@@ -37,7 +37,7 @@ def hello(request, response, name):
     # Set plain text response
     response.text = f"Hello, {name}!"
 
-# To run: Use a WSGI server like gunicorn or waitress
+# To run: Use a WSGI server like gunicorn 
 # Example: gunicorn main:app
 ```
 
@@ -102,24 +102,25 @@ user1.save()
 user2.save()
 user3.save()
 
-# Fetch all users
-users = User.all()
+
+# Fetch all users (using Manager)
+users = User.objects.all()
 print("All users:", users)
 
 # Get a single user by field (raises if not found or multiple found)
 try:
-    alice = User.get(name="Alice")
+    alice = User.objects.get(name="Alice")
     print("Get Alice:", alice)
 except Exception as e:
     print(e)
 
 # Filter users by age
-filtered = User.filter(age=25)
+filtered = User.objects.filter(age=25).all()
 print("Users with age=25:", filtered)
 
 # Delete a user by id
-User.delete(id=2)
-print("After deleting Bob:", User.all())
+User.objects.delete(id=2)
+print("After deleting Bob:", User.objects.all())
 
 # Drop the table (removes all data and table)
 db.drop(User)
@@ -127,10 +128,12 @@ db.drop(User)
 
 ---
 
+
 #### Comments
 - The framework supports both function-based and class-based route handlers.
 - Middleware can be added for logging, authentication, etc.
 - The ORM allows you to define models as Python classes and map them to SQL tables.
+- Each model gets an `objects` attribute (a Manager) for querying, filtering, and deleting records in a Pythonic way (e.g., `User.objects.all()`, `User.objects.get(...)`, `User.objects.filter(...)`).
 - You must bind a database connection to your model before saving data.
 - Table creation and data insertion are handled via class methods and instance methods.
 
