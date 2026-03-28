@@ -2,11 +2,13 @@
 *.pyc
 *.pyo
 *.pyd
-.coverage
 tests/.coveragerc
+.coverage
+
 .pytest_cache/
 dist/
 pyframex7.egg-info/
 pyframe/request.py
 __pycache__/
+.coverage
 test

@@ -65,10 +65,11 @@ INSERT INTO author (name, age) VALUES (?, ?)
 
 ---
 
+
 # 📖 6. Read All Data
 
 ```python
-authors = Author.all()
+authors = Author.objects.all()
 ```
 
 ### SQL
@@ -86,10 +87,11 @@ SELECT * FROM author
 
 ---
 
+
 # 🔍 7. Filter Data
 
 ```python
-authors = Author.filter(name="Ali")
+authors = Author.objects.filter(name="Ali").all()
 ```
 
 ### SQL
@@ -101,6 +103,16 @@ SELECT * FROM author WHERE name = ?
 ```
 ("Ali",)
 ```
+# ℹ️ Note on Manager
+
+Each model class (like Author) has an `objects` attribute (Manager) for all ORM operations:
+
+- `Author.objects.all()` – get all rows
+- `Author.objects.filter(...)` – filter rows (returns a Query, use `.all()` to get results)
+- `Author.objects.get(...)` – get a single row
+- `Author.objects.delete(...)` – delete rows
+
+This makes your ORM usage more Pythonic and consistent with modern frameworks.
 
 ---
 
