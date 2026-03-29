@@ -37,7 +37,7 @@ class Query:
     def __init__(self, model) -> None:
         self.model = model
         self.filters = []
-        self.selected_fields = None
+        self.selected_fields = []
 
     def all(self):
         table_name = self.model.__name__
@@ -136,13 +136,13 @@ class Query:
         res = self.model._db.execute(query, values)
         return res.fetchall()
 
-    def iter(self):
+    def __iter__(self):
         return iter(self.sql_result())
 
-    def repr(self) -> str:
+    def __repr__(self) -> str:
         return repr(self.sql_result())
 
-    def len(self):
+    def __len__(self):
         return len(self.sql_result())
 
     @staticmethod
@@ -150,9 +150,8 @@ class Query:
         query = f"SELECT name FROM PRAGMA_TABLE_INFO('{table_name}');"
         res = db.execute(query)
         cols = res.fetchall()
-        print(cols)
-        missing = [c for c in columns if c not in cols]
-        is_missing = all(c in cols for c in cols)
+        missing = [c for c in columns if c[0] in cols]
+        is_missing = all(c[0] in cols for c in cols)
         return is_missing, missing
 
 
@@ -233,9 +232,6 @@ class Table:
         table_name: str = self.get_table_name()
         columns: list = list(self._get_fields().keys())
 
-        # print("table name: ", table_name)
-        # print("column list: ", columns)
-
         column_names = ", ".join(columns)
         placeholders = ", ".join(["?"] * len(columns))
         values = tuple(getattr(self, col) for col in columns)
@@ -244,7 +240,7 @@ class Table:
 
         self._db.execute(query, values)
 
-        return
+        return None
 
 
 class Database:
@@ -266,9 +262,6 @@ class Database:
     def connection(self):
         return sqlite3.connect(self.name)
 
-    def cursor(self):
-        return self.connection().cursor()
-
     def execute(self, query, params=None):
         conn = self.connection()
         cursor = conn.cursor()
@@ -285,6 +278,8 @@ class Database:
         query = model.build_full_query()
         self.execute(query)
 
+    def update(self):
+        pass
     def drop(self, model):
         model._db = self
         table_name = model.get_table_name()

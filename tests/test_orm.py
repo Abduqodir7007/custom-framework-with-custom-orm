@@ -112,7 +112,7 @@ class TestOrm:
         book.save()
 
         Books.objects.delete(name="book")
-        
+
         res = db.execute("SELECT * FROM books")
         data = res.fetchall()
 
@@ -120,3 +120,41 @@ class TestOrm:
 
     def test_limit_feature(self, db):
         pass
+
+    def test_values_method(self, db):
+
+        class Person(Table):
+            name = Column(str)
+            age = Column(int)
+            # email = Column(str)
+        db.create(Person)
+
+        p1 = Person(name="Tom", age=6, email="")
+        p1.save()
+
+        person = Person.objects.filter(name="Tom").values("name")
+        result = list(person)
+        assert "Tom" in result[0]
+
+    def test_manager_iter_len_repr(self, db):
+        class User(Table):
+            name = Column(str)
+            age = Column(int)
+
+        db.create(User)
+        User(name="alice", age=30).save()
+        User(name="bob", age=25).save()
+
+        # Test __iter__
+        names = [user[0] for user in User.objects]
+        assert "alice" in names and "bob" in names
+        print(User.objects)
+        # Test __len__
+        assert len(User.objects) == 2
+
+        # Test __repr__ (should contain both names)
+        rep = repr(User.objects)
+        assert "alice" in rep and "bob" in rep
+
+        # Test print (should not error, output not asserted)
+        print(User.objects)
